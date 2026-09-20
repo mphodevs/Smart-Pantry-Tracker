@@ -7,4 +7,9 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <!-- Expiry warning indicators -->
+    <color name="expiry_expired">#D32F2F</color>
+    <color name="expiry_warning">#EF6C00</color>
+    <color name="expiry_safe">#388E3C</color>
 </resources>

@@ -7,6 +7,7 @@ import android.widget.ImageButton;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
@@ -67,6 +68,21 @@ public class IngredientAdapter extends ListAdapter<Ingredient, IngredientAdapter
                 SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
                 textExpiry.setText("Expires: " + sdf.format(new Date(ingredient.getExpiryDate())));
                 textExpiry.setVisibility(View.VISIBLE);
+
+                // Calculate date threshold warnings (e.g. within 3 days)
+                long currentTime = System.currentTimeMillis();
+                long diffInMillis = ingredient.getExpiryDate() - currentTime;
+                long diffInDays = diffInMillis / (1000 * 60 * 60 * 24);
+
+                if (diffInMillis < 0) {
+                    textExpiry.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.expiry_expired));
+                    textExpiry.setText("Expired! (" + sdf.format(new Date(ingredient.getExpiryDate())) + ")");
+                } else if (diffInDays <= 3) {
+                    textExpiry.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.expiry_warning));
+                    textExpiry.setText("Expires soon: " + sdf.format(new Date(ingredient.getExpiryDate())));
+                } else {
+                    textExpiry.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.expiry_safe));
+                }
             } else {
                 textExpiry.setVisibility(View.GONE);
             }
