@@ -7,13 +7,15 @@ import androidx.room.Insert;
 import androidx.room.Query;
 import androidx.room.Update;
 
+import androidx.room.OnConflictStrategy;
+
 import com.example.myapplication2.model.Ingredient;
 
 import java.util.List;
 
 @Dao
 public interface PantryDao {
-    @Insert
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insert(Ingredient ingredient);
 
     @Update

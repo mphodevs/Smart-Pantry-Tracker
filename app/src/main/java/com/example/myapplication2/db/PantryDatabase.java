@@ -17,7 +17,7 @@ import com.example.myapplication2.model.RecipeIngredient;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-@Database(entities = {Ingredient.class, Recipe.class, RecipeIngredient.class}, version = 1, exportSchema = false)
+@Database(entities = {Ingredient.class, Recipe.class, RecipeIngredient.class}, version = 2, exportSchema = false)
 public abstract class PantryDatabase extends RoomDatabase {
     public abstract PantryDao pantryDao();
     public abstract RecipeDao recipeDao();
@@ -34,6 +34,7 @@ public abstract class PantryDatabase extends RoomDatabase {
                     INSTANCE = Room.databaseBuilder(context.getApplicationContext(),
                                     PantryDatabase.class, "pantry_database")
                             .addCallback(sRoomDatabaseCallback)
+                            .fallbackToDestructiveMigration(true)
                             .build();
                 }
             }
