@@ -9,9 +9,23 @@ import java.util.Map;
 
 public class MatchingEngine {
 
+    private static final Map<String, String[]> SUBSTITUTES = new HashMap<>();
+
+    static {
+        // Map canonical items to their list of valid equivalents/substitutes
+        SUBSTITUTES.put("butter", new String[]{"margarine", "butter", "oil"});
+        SUBSTITUTES.put("margarine", new String[]{"butter", "margarine"});
+        SUBSTITUTES.put("milk", new String[]{"milk", "cream", "almond milk", "soy milk"});
+        SUBSTITUTES.put("sugar", new String[]{"sugar", "brown sugar", "honey", "sweetener"});
+        SUBSTITUTES.put("olive oil", new String[]{"olive oil", "vegetable oil", "oil", "butter"});
+        SUBSTITUTES.put("garlic", new String[]{"garlic", "garlic powder"});
+        SUBSTITUTES.put("onion", new String[]{"onion", "onion powder", "shallot"});
+    }
+
     /**
      * Checks if a recipe can be made with the current pantry.
-     * Strict matching: every required ingredient must be present in sufficient quantity.
+     * Strict matching with substitute parameters: every required ingredient or an equivalent
+     * must be present in sufficient quantity.
      */
     public static boolean canMakeRecipe(List<RecipeIngredient> required, List<Ingredient> pantry) {
         Map<String, Double> pantryMap = new HashMap<>();
@@ -22,9 +36,26 @@ public class MatchingEngine {
 
         for (RecipeIngredient req : required) {
             String normalizedReqName = normalize(req.getIngredientName());
-            Double availableQuantity = pantryMap.get(normalizedReqName);
+            
+            // Check primary ingredient
+            Double primaryQtyObj = pantryMap.get(normalizedReqName);
+            double totalAvailable = (primaryQtyObj != null) ? primaryQtyObj : 0.0;
 
-            if (availableQuantity == null || availableQuantity < req.getRequiredQuantity()) {
+            // If primary ingredient is insufficient, check predefined substitutes
+            if (totalAvailable < req.getRequiredQuantity()) {
+                String[] subs = SUBSTITUTES.get(normalizedReqName);
+                if (subs != null) {
+                    for (String substitute : subs) {
+                        String normalizedSub = normalize(substitute);
+                        if (!normalizedSub.equals(normalizedReqName)) {
+                            Double subQtyObj = pantryMap.get(normalizedSub);
+                            totalAvailable += (subQtyObj != null) ? subQtyObj : 0.0;
+                        }
+                    }
+                }
+            }
+
+            if (totalAvailable < req.getRequiredQuantity()) {
                 return false;
             }
         }
