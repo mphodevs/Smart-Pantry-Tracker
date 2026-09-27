@@ -2,6 +2,8 @@ package com.example.myapplication2.ui;
 
 import android.app.DatePickerDialog;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.widget.Button;
 import android.widget.Toast;
 
@@ -12,6 +14,7 @@ import com.example.myapplication2.R;
 import com.example.myapplication2.model.Ingredient;
 import com.example.myapplication2.viewmodel.PantryViewModel;
 import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -20,8 +23,8 @@ import java.util.Locale;
 
 public class AddEditIngredientActivity extends AppCompatActivity {
 
-    private TextInputEditText editName, editQuantity, editUnit;
-    private Button buttonPickDate, buttonSave;
+    private TextInputLayout layoutName, layoutQuantity, layoutUnit, layoutDate;
+    private TextInputEditText editName, editQuantity, editUnit, editDate;
     private long selectedExpiryDate = 0;
     private PantryViewModel viewModel;
     private int ingredientId = -1;
@@ -31,11 +34,16 @@ public class AddEditIngredientActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_add_edit_ingredient);
 
+        layoutName = findViewById(R.id.layout_text_name);
+        layoutQuantity = findViewById(R.id.layout_text_quantity);
+        layoutUnit = findViewById(R.id.layout_text_unit);
+        layoutDate = findViewById(R.id.layout_text_date);
+
         editName = findViewById(R.id.edit_text_name);
         editQuantity = findViewById(R.id.edit_text_quantity);
         editUnit = findViewById(R.id.edit_text_unit);
-        buttonPickDate = findViewById(R.id.button_pick_date);
-        buttonSave = findViewById(R.id.button_save);
+        editDate = findViewById(R.id.edit_text_date);
+        Button buttonSave = findViewById(R.id.button_save);
 
         viewModel = new ViewModelProvider(this).get(PantryViewModel.class);
 
@@ -46,12 +54,60 @@ public class AddEditIngredientActivity extends AppCompatActivity {
             editUnit.setText(getIntent().getStringExtra("unit"));
             selectedExpiryDate = getIntent().getLongExtra("expiry", 0);
             if (selectedExpiryDate > 0) {
-                updateDateButton();
+                updateDateDisplay();
             }
         }
 
-        buttonPickDate.setOnClickListener(v -> showDatePicker());
+        setupTextWatchers();
+
+        editDate.setOnClickListener(v -> showDatePicker());
+        layoutDate.setEndIconOnClickListener(v -> showDatePicker());
         buttonSave.setOnClickListener(v -> saveIngredient());
+    }
+
+    private void setupTextWatchers() {
+        editName.addTextChangedListener(new SimpleTextWatcher() {
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                if (s.toString().trim().isEmpty()) {
+                    layoutName.setError("Ingredient name is required");
+                } else {
+                    layoutName.setError(null);
+                }
+            }
+        });
+
+        editQuantity.addTextChangedListener(new SimpleTextWatcher() {
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                String str = s.toString().trim();
+                if (str.isEmpty()) {
+                    layoutQuantity.setError("Quantity is required");
+                } else {
+                    try {
+                        double val = Double.parseDouble(str);
+                        if (val <= 0) {
+                            layoutQuantity.setError("Quantity must be greater than zero");
+                        } else {
+                            layoutQuantity.setError(null);
+                        }
+                    } catch (NumberFormatException e) {
+                        layoutQuantity.setError("Please enter a valid number");
+                    }
+                }
+            }
+        });
+
+        editUnit.addTextChangedListener(new SimpleTextWatcher() {
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                if (s.toString().trim().isEmpty()) {
+                    layoutUnit.setError("Unit is required (e.g., pcs, g, kg, cup)");
+                } else {
+                    layoutUnit.setError(null);
+                }
+            }
+        });
     }
 
     private void showDatePicker() {
@@ -62,39 +118,99 @@ public class AddEditIngredientActivity extends AppCompatActivity {
         new DatePickerDialog(this, (view, year, month, dayOfMonth) -> {
             calendar.set(year, month, dayOfMonth);
             selectedExpiryDate = calendar.getTimeInMillis();
-            updateDateButton();
+            updateDateDisplay();
+            validateDate();
         }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH)).show();
     }
 
-    private void updateDateButton() {
+    private void updateDateDisplay() {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
-        buttonPickDate.setText(sdf.format(new Date(selectedExpiryDate)));
+        editDate.setText(sdf.format(new Date(selectedExpiryDate)));
+    }
+
+    private boolean validateDate() {
+        if (selectedExpiryDate > 0) {
+            Calendar today = Calendar.getInstance();
+            today.set(Calendar.HOUR_OF_DAY, 0);
+            today.set(Calendar.MINUTE, 0);
+            today.set(Calendar.SECOND, 0);
+            today.set(Calendar.MILLISECOND, 0);
+
+            Calendar selected = Calendar.getInstance();
+            selected.setTimeInMillis(selectedExpiryDate);
+            selected.set(Calendar.HOUR_OF_DAY, 0);
+            selected.set(Calendar.MINUTE, 0);
+            selected.set(Calendar.SECOND, 0);
+            selected.set(Calendar.MILLISECOND, 0);
+
+            if (selected.before(today)) {
+                layoutDate.setError("Expiry date cannot be in the past");
+                return false;
+            }
+        }
+        layoutDate.setError(null);
+        return true;
+    }
+
+    private boolean validateInputs() {
+        boolean isValid = true;
+
+        String name = editName.getText() != null ? editName.getText().toString().trim() : "";
+        String quantityStr = editQuantity.getText() != null ? editQuantity.getText().toString().trim() : "";
+        String unit = editUnit.getText() != null ? editUnit.getText().toString().trim() : "";
+
+        // Validate Name
+        if (name.isEmpty()) {
+            layoutName.setError("Ingredient name is required");
+            isValid = false;
+        } else {
+            layoutName.setError(null);
+        }
+
+        // Validate Quantity
+        if (quantityStr.isEmpty()) {
+            layoutQuantity.setError("Quantity is required");
+            isValid = false;
+        } else {
+            try {
+                double quantity = Double.parseDouble(quantityStr);
+                if (quantity <= 0) {
+                    layoutQuantity.setError("Quantity must be greater than zero");
+                    isValid = false;
+                } else {
+                    layoutQuantity.setError(null);
+                }
+            } catch (NumberFormatException e) {
+                layoutQuantity.setError("Please enter a valid number");
+                isValid = false;
+            }
+        }
+
+        // Validate Unit
+        if (unit.isEmpty()) {
+            layoutUnit.setError("Unit is required (e.g., pcs, g, kg, cup)");
+            isValid = false;
+        } else {
+            layoutUnit.setError(null);
+        }
+
+        // Validate Date
+        if (!validateDate()) {
+            isValid = false;
+        }
+
+        return isValid;
     }
 
     private void saveIngredient() {
-        String name = editName.getText().toString().trim();
-        String quantityStr = editQuantity.getText().toString().trim();
-        String unit = editUnit.getText().toString().trim();
+        if (!validateInputs()) {
+            return;
+        }
 
-        if (name.isEmpty()) {
-            editName.setError("Name is required");
-            return;
-        }
-        if (quantityStr.isEmpty()) {
-            editQuantity.setError("Quantity is required");
-            return;
-        }
-        double quantity;
-        try {
-            quantity = Double.parseDouble(quantityStr);
-        } catch (NumberFormatException e) {
-            editQuantity.setError("Invalid quantity");
-            return;
-        }
-        if (unit.isEmpty()) {
-            editUnit.setError("Unit is required");
-            return;
-        }
+        String name = editName.getText() != null ? editName.getText().toString().trim() : "";
+        String quantityStr = editQuantity.getText() != null ? editQuantity.getText().toString().trim() : "0";
+        double quantity = Double.parseDouble(quantityStr);
+        String unit = editUnit.getText() != null ? editUnit.getText().toString().trim() : "";
 
         Ingredient ingredient = new Ingredient(name, quantity, unit, selectedExpiryDate);
         if (ingredientId != -1) {
@@ -107,5 +223,12 @@ public class AddEditIngredientActivity extends AppCompatActivity {
         }
         finish();
         overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right);
+    }
+
+    private abstract static class SimpleTextWatcher implements TextWatcher {
+        @Override
+        public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+        @Override
+        public void afterTextChanged(Editable s) {}
     }
 }
