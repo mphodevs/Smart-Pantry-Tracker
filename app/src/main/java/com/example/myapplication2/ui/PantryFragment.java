@@ -11,12 +11,14 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.myapplication2.R;
 import com.example.myapplication2.model.Ingredient;
 import com.example.myapplication2.viewmodel.PantryViewModel;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.snackbar.Snackbar;
 
 public class PantryFragment extends Fragment {
 
@@ -49,11 +51,27 @@ public class PantryFragment extends Fragment {
             }
             @Override
             public void onDeleteClick(Ingredient ingredient) {
-                viewModel.delete(ingredient);
+                deleteIngredientWithUndo(ingredient, view, fab);
             }
         });
 
         recyclerView.setAdapter(adapter);
+
+        new ItemTouchHelper(new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
+            @Override
+            public boolean onMove(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder, @NonNull RecyclerView.ViewHolder target) {
+                return false;
+            }
+
+            @Override
+            public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
+                int position = viewHolder.getAdapterPosition();
+                if (position != RecyclerView.NO_POSITION) {
+                    Ingredient ingredientToDelete = adapter.getIngredientAt(position);
+                    deleteIngredientWithUndo(ingredientToDelete, view, fab);
+                }
+            }
+        }).attachToRecyclerView(recyclerView);
 
         viewModel = new ViewModelProvider(this).get(PantryViewModel.class);
         viewModel.getAllIngredients().observe(getViewLifecycleOwner(), ingredients -> {
@@ -70,5 +88,13 @@ public class PantryFragment extends Fragment {
         });
 
         return view;
+    }
+
+    private void deleteIngredientWithUndo(Ingredient ingredient, View view, FloatingActionButton fab) {
+        viewModel.delete(ingredient);
+        Snackbar.make(view, ingredient.getName() + " deleted", Snackbar.LENGTH_LONG)
+                .setAnchorView(fab)
+                .setAction("Undo", v -> viewModel.insert(ingredient))
+                .show();
     }
 }

@@ -33,6 +33,10 @@ public class IngredientAdapter extends ListAdapter<Ingredient, IngredientAdapter
         this.listener = listener;
     }
 
+    public Ingredient getIngredientAt(int position) {
+        return getItem(position);
+    }
+
     @NonNull
     @Override
     public IngredientViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
