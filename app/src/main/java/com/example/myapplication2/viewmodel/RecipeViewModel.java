@@ -22,7 +22,7 @@ public class RecipeViewModel extends AndroidViewModel {
 
     public RecipeViewModel(Application application) {
         super(application);
-        repository = new IngredientRepository(application);
+        repository = IngredientRepository.getInstance(application);
     }
 
     public LiveData<List<Recipe>> getSuggestedRecipes() { return suggestedRecipes; }

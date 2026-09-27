@@ -16,7 +16,7 @@ public class PantryViewModel extends AndroidViewModel {
 
     public PantryViewModel(Application application) {
         super(application);
-        repository = new IngredientRepository(application);
+        repository = IngredientRepository.getInstance(application);
         allIngredients = repository.getAllIngredients();
     }
 

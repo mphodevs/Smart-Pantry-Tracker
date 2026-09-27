@@ -13,17 +13,30 @@ import com.example.myapplication2.model.RecipeIngredient;
 import java.util.List;
 
 public class IngredientRepository {
-    private PantryDao pantryDao;
-    private RecipeDao recipeDao;
-    private LiveData<List<Ingredient>> allIngredients;
-    private LiveData<List<Recipe>> allRecipes;
+    private static volatile IngredientRepository INSTANCE;
 
-    public IngredientRepository(Application application) {
+    private final PantryDao pantryDao;
+    private final RecipeDao recipeDao;
+    private final LiveData<List<Ingredient>> allIngredients;
+    private final LiveData<List<Recipe>> allRecipes;
+
+    private IngredientRepository(Application application) {
         PantryDatabase db = PantryDatabase.getDatabase(application);
         pantryDao = db.pantryDao();
         recipeDao = db.recipeDao();
         allIngredients = pantryDao.getAllIngredients();
         allRecipes = recipeDao.getAllRecipes();
+    }
+
+    public static IngredientRepository getInstance(Application application) {
+        if (INSTANCE == null) {
+            synchronized (IngredientRepository.class) {
+                if (INSTANCE == null) {
+                    INSTANCE = new IngredientRepository(application);
+                }
+            }
+        }
+        return INSTANCE;
     }
 
     public LiveData<List<Ingredient>> getAllIngredients() { return allIngredients; }
